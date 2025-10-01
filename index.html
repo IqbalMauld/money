@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Pengatur Pemasukan & Pengeluaran</title>
+  <style>
+   body { 
+      font-family: Arial, sans-serif; 
+      max-width: 900px; 
+      margin: 20px auto; 
+      padding: 15px;
+    }
+    h1 { 
+      text-align: center; 
+      font-size: 22px;
+      margin-bottom: 20px;
+    }
+
+    /* Form */
+    form { 
+      display: flex; 
+      flex-wrap: wrap; 
+      gap: 10px; 
+      margin-bottom: 15px; 
+    }
+    form input, form select, form button {
+      flex: 1;
+      min-width: 120px;
+      padding: 10px;
+      font-size: 14px;
+    }
+    button { 
+      background: #007bff; 
+      border: none; 
+      color: white; 
+      cursor: pointer; 
+      border-radius: 5px;
+    }
+    button:hover { background: #0056b3; }
+
+    /* Filter */
+    .filter { 
+      margin: 10px 0; 
+      text-align: right; 
+    }
+    .filter select {
+      padding: 6px;
+    }
+
+    /* Table responsive */
+    .table-container {
+      overflow-x: auto;
+    }
+    table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      min-width: 500px; /* biar scroll muncul di hp */
+    }
+    th, td { 
+      border: 1px solid #ddd; 
+      padding: 8px; 
+      text-align: center; 
+      font-size: 14px;
+    }
+    th { 
+      background: #007bff; 
+      color: white; 
+      font-size: 15px;
+    }
+    .income { color: green; }
+    .expense { color: red; }
+
+    /* Summary */
+    .summary { 
+      display: flex; 
+      flex-wrap: wrap;
+      justify-content: space-between; 
+      font-size: 16px; 
+      font-weight: bold; 
+      margin-top: 15px;
+      gap: 10px;
+    }
+
+    /* Responsive rules */
+    @media (max-width: 600px) {
+      body { padding: 10px; }
+      h1 { font-size: 18px; }
+      form input, form select, form button {
+        flex: 100%;
+        min-width: 100%;
+      }
+      .filter { text-align: left; }
+      th, td { font-size: 13px; padding: 6px; }
+      .summary { font-size: 14px; flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Pengatur Pemasukan & Pengeluaran</h1>
+
+  <!-- Form Input -->
+  <form id="formTransaksi">
+    <input type="text" id="keterangan" placeholder="Keterangan" required>
+    <input type="number" id="nominal" placeholder="Nominal" required>
+    <select id="tipe">
+      <option value="pemasukan">Pemasukan</option>
+      <option value="pengeluaran">Pengeluaran</option>
+    </select>
+    <button type="submit">Tambah</button>
+  </form>
+
+  <!-- Filter -->
+  <div class="filter">
+    <label>Filter: </label>
+    <select id="filter">
+      <option value="all">Semua</option>
+      <option value="pemasukan">Pemasukan</option>
+      <option value="pengeluaran">Pengeluaran</option>
+    </select>
+  </div>
+
+  <!-- Tabel -->
+  <table>
+    <thead>
+      <tr>
+        <th>No</th>
+        <th>Keterangan</th>
+        <th>Tipe</th>
+        <th>Nominal</th>
+      </tr>
+    </thead>
+    <tbody id="daftarTransaksi"></tbody>
+  </table>
+
+  <!-- Summary -->
+  <div class="summary">
+    <div>Total Pemasukan: <span id="totalIn">0</span></div>
+    <div>Total Pengeluaran: <span id="totalOut">0</span></div>
+    <div>Saldo: <span id="totalSaldo">0</span></div>
+  </div>
+
+  <script>
+    const form = document.getElementById("formTransaksi");
+    const daftar = document.getElementById("daftarTransaksi");
+    const totalIn = document.getElementById("totalIn");
+    const totalOut = document.getElementById("totalOut");
+    const totalSaldo = document.getElementById("totalSaldo");
+    const filterSelect = document.getElementById("filter");
+
+    let transaksi = JSON.parse(localStorage.getItem("transaksi")) || [];
+
+    // Render tabel
+    function renderData() {
+      daftar.innerHTML = "";
+      let no = 1;
+      let inValue = 0, outValue = 0;
+
+      // filter data
+      let filter = filterSelect.value;
+      let dataTampil = transaksi.filter(item => {
+        if (filter === "all") return true;
+        return item.tipe === filter;
+      });
+
+      // tampilkan ke tabel
+      dataTampil.forEach(item => {
+        let tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${no++}</td>
+          <td>${item.ket}</td>
+          <td class="${item.tipe === 'pemasukan' ? 'income' : 'expense'}">${item.tipe}</td>
+          <td>${item.tipe === 'pemasukan' ? '+' : '-'}${item.nominal.toLocaleString()}</td>
+        `;
+        daftar.appendChild(tr);
+
+        // hitung total
+        if (item.tipe === "pemasukan") inValue += item.nominal;
+        else outValue += item.nominal;
+      });
+
+      // update summary
+      totalIn.textContent = inValue.toLocaleString();
+      totalOut.textContent = outValue.toLocaleString();
+      totalSaldo.textContent = (inValue - outValue).toLocaleString();
+    }
+
+    // Event submit form
+    form.addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      let ket = document.getElementById("keterangan").value;
+      let nominal = parseFloat(document.getElementById("nominal").value);
+      let tipe = document.getElementById("tipe").value;
+
+      if (isNaN(nominal) || nominal <= 0) return;
+
+      // simpan ke array
+      transaksi.push({ ket, nominal, tipe });
+
+      // simpan ke localStorage
+      localStorage.setItem("transaksi", JSON.stringify(transaksi));
+
+      // render ulang
+      renderData();
+
+      form.reset();
+    });
+
+    // Event filter
+    filterSelect.addEventListener("change", renderData);
+
+    // render pertama kali
+    renderData();
+  </script>
+
+</body>
+</html>
