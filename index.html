@@ -137,7 +137,6 @@
   <div class="summary">
     <div>Total Pemasukan: <span id="totalIn">0</span></div>
     <div>Total Pengeluaran: <span id="totalOut">0</span></div>
-    <div>Saldo: <span id="totalSaldo">0</span></div>
   </div>
 
   <script>
@@ -182,7 +181,6 @@
       // update summary
       totalIn.textContent = inValue.toLocaleString();
       totalOut.textContent = outValue.toLocaleString();
-      totalSaldo.textContent = (inValue - outValue).toLocaleString();
     }
 
     // Event submit form
