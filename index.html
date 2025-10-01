@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Pengatur Pemasukan & Pengeluaran</title>
   <style>
-   body { 
+    body { 
       font-family: Arial, sans-serif; 
       max-width: 900px; 
       margin: 20px auto; 
@@ -38,6 +38,22 @@
     }
     button:hover { background: #0056b3; }
 
+    .delete-btn { 
+      background: #dc3545; 
+      font-size: 12px; 
+      padding: 5px 8px;
+      border-radius: 4px;
+    }
+    .delete-btn:hover { background: #a71d2a; }
+
+    .delete-all { 
+      margin: 10px 0; 
+      background: #dc3545; 
+      padding: 8px 15px;
+      border-radius: 5px;
+    }
+    .delete-all:hover { background: #a71d2a; }
+
     /* Filter */
     .filter { 
       margin: 10px 0; 
@@ -54,7 +70,7 @@
     table { 
       width: 100%; 
       border-collapse: collapse; 
-      min-width: 500px; /* biar scroll muncul di hp */
+      min-width: 600px; 
     }
     th, td { 
       border: 1px solid #ddd; 
@@ -120,18 +136,24 @@
     </select>
   </div>
 
-  <!-- Tabel -->
-  <table>
-    <thead>
-      <tr>
-        <th>No</th>
-        <th>Keterangan</th>
-        <th>Tipe</th>
-        <th>Nominal</th>
-      </tr>
-    </thead>
-    <tbody id="daftarTransaksi"></tbody>
-  </table>
+  <!-- Delete All Button -->
+  <button class="delete-all" id="deleteAll">Hapus Semua</button>
+
+  <!-- Table (scrollable in phone) -->
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>Keterangan</th>
+          <th>Tipe</th>
+          <th>Nominal</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="daftarTransaksi"></tbody>
+    </table>
+  </div>
 
   <!-- Summary -->
   <div class="summary">
@@ -144,8 +166,8 @@
     const daftar = document.getElementById("daftarTransaksi");
     const totalIn = document.getElementById("totalIn");
     const totalOut = document.getElementById("totalOut");
-    const totalSaldo = document.getElementById("totalSaldo");
     const filterSelect = document.getElementById("filter");
+    const deleteAllBtn = document.getElementById("deleteAll");
 
     let transaksi = JSON.parse(localStorage.getItem("transaksi")) || [];
 
@@ -155,35 +177,48 @@
       let no = 1;
       let inValue = 0, outValue = 0;
 
-      // filter data
       let filter = filterSelect.value;
       let dataTampil = transaksi.filter(item => {
         if (filter === "all") return true;
         return item.tipe === filter;
       });
 
-      // tampilkan ke tabel
-      dataTampil.forEach(item => {
+      dataTampil.forEach((item, index) => {
         let tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${no++}</td>
           <td>${item.ket}</td>
           <td class="${item.tipe === 'pemasukan' ? 'income' : 'expense'}">${item.tipe}</td>
           <td>${item.tipe === 'pemasukan' ? '+' : '-'}${item.nominal.toLocaleString()}</td>
+          <td><button class="delete-btn" onclick="deleteItem(${index})">Hapus</button></td>
         `;
         daftar.appendChild(tr);
 
-        // hitung total
         if (item.tipe === "pemasukan") inValue += item.nominal;
         else outValue += item.nominal;
       });
 
-      // update summary
       totalIn.textContent = inValue.toLocaleString();
       totalOut.textContent = outValue.toLocaleString();
     }
 
-    // Event submit form
+    // Delete item per baris
+    function deleteItem(index) {
+      transaksi.splice(index, 1);
+      localStorage.setItem("transaksi", JSON.stringify(transaksi));
+      renderData();
+    }
+
+    // Delete all
+    deleteAllBtn.addEventListener("click", function() {
+      if (confirm("Yakin mau hapus semua transaksi?")) {
+        transaksi = [];
+        localStorage.setItem("transaksi", JSON.stringify(transaksi));
+        renderData();
+      }
+    });
+
+    // Submit form
     form.addEventListener("submit", function(e) {
       e.preventDefault();
 
@@ -193,22 +228,17 @@
 
       if (isNaN(nominal) || nominal <= 0) return;
 
-      // simpan ke array
       transaksi.push({ ket, nominal, tipe });
-
-      // simpan ke localStorage
       localStorage.setItem("transaksi", JSON.stringify(transaksi));
 
-      // render ulang
       renderData();
-
       form.reset();
     });
 
-    // Event filter
+    // Filter change
     filterSelect.addEventListener("change", renderData);
 
-    // render pertama kali
+    // First render
     renderData();
   </script>
 
